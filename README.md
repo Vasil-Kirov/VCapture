@@ -13,3 +13,4 @@ TODO:
 - Replace VirtualAlloc in the Capture.h CopyImageToClipboard() with alloca
 - Might wanna remove the red bordre on photos
 - Pressing ctrl shift s when cropping causes strange behavior
+- Replace StretchDIBits in Win32UpdateWindow() with BitBlt for massive performance increase
