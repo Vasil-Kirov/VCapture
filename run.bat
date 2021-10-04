@@ -1,1 +1,1 @@
-start build/main.exe
+start build/VCapture.exe
