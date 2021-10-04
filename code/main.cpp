@@ -1,15 +1,10 @@
 // Windows headers
 #include <Windows.h>
-#include <shlobj_core.h> 
-#include <pathcch.h>
-#pragma comment(lib, "pathcch.lib")
-#include <gdiplus.h>
 // End of windows headers
 #include <stdint.h>
 #include "std.h"
 #include "Capture.h"
 
-using namespace Gdiplus;
 
 #define internal static
 #define global_var static
@@ -31,6 +26,7 @@ global_var BITMAPINFO BitmapInfo;
 global_var void *BackBuffer;
 global_var int BitmapWidth;
 global_var int BitmapHeight;
+
 
 
 internal void
@@ -66,18 +62,10 @@ Win32ResizeDIBSection(int w, int h)
 internal void
 Win32UpdateWindow(HDC WindowDC, RECT WindowRect)
 {
-	char *pixels = (char *)BackBuffer;
 	int WindowWidth  = WindowRect.right - WindowRect.left;
 	int WindowHeight = WindowRect.bottom - WindowRect.top;
 	
-	StretchDIBits( 	WindowDC,
-					0, 0, BitmapWidth, BitmapHeight,
-					0, 0, WindowWidth, WindowHeight,
-					pixels,
-					&BitmapInfo,
-					DIB_RGB_COLORS,
-					SRCCOPY
-	);
+	SetDIBitsToDevice(WindowDC, 0, 0, WindowWidth, WindowHeight, 0, 0, 0, WindowHeight, BackBuffer, &BitmapInfo, DIB_RGB_COLORS);
 }
 
 
@@ -174,15 +162,6 @@ LRESULT CALLBACK WindowProc(
 
 int WINAPI WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR  CmdLine, int ShowCmd)
 {
-	uint64 token;
-	GdiplusStartupInput gdi_inp = {};
-	gdi_inp.GdiplusVersion = 1;
-	gdi_inp.DebugEventCallback = NULL;
-	gdi_inp.SuppressBackgroundThread = FALSE;
-	gdi_inp.SuppressExternalCodecs = FALSE;
-
-
-	GdiplusStartup(&token, &gdi_inp, NULL);
 
 	int ScreenWidth  = GetSystemMetrics(SM_CXSCREEN);
 	int ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
@@ -275,12 +254,14 @@ int WINAPI WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR  CmdLine, i
 									shiftIsDown = false;
 
 									CaptureScreen(Window, BackBuffer, ScreenWidth, ScreenHeight);
-										
+									
+
 									HDC WindowDC = GetDC(Window);
 									RECT ClientRect;
 									GetClientRect(Window, &ClientRect);
 									Win32UpdateWindow(WindowDC, ClientRect);
 									ReleaseDC(Window, WindowDC);
+									
 									Crop.x1 = -1;
 									isCropping = true;
 
@@ -309,7 +290,7 @@ int WINAPI WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR  CmdLine, i
 								case RI_MOUSE_LEFT_BUTTON_UP:
 								{
 									if (leftIsDown)
-									{
+									{										
 										ShouldShowWindow = false;
 										leftIsDown = false;
 										POINT point;
@@ -340,9 +321,13 @@ int WINAPI WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR  CmdLine, i
 											top = Crop.y2;
 											bottom = Crop.y1;
 										}
+										Crop.x1 = -1; // So window doesn't paint the rectangle anymore
 
+										HDC WindowDC = GetDC(Window);
+										RECT ClientRect;
+										GetClientRect(Window, &ClientRect);
+										Win32UpdateWindow(WindowDC, ClientRect);
 
-										HDC WindowDC = GetDC(NULL);
 										HDC hdc = CreateCompatibleDC(WindowDC);
 										HBITMAP hbmp = CreateCompatibleBitmap(WindowDC,
 											ScreenWidth, ScreenHeight);
@@ -359,19 +344,15 @@ int WINAPI WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR  CmdLine, i
 
 										BitBlt(CustomComp, 0, 0, new_w, new_h, hdc, left, top, SRCCOPY);
 											
-										Bitmap* img = new Bitmap(CropBitmap, NULL);
-
-
-										CopyImageToClipboard(Window, img);
+										
+										CopyImageToClipboard(Window, CropBitmap);
 											
 										SetWindowPos(Window, HWND_BOTTOM, 0, 0, 0, 0, SWP_HIDEWINDOW);
-										delete img;
 										DeleteDC(CustomDC);
 										DeleteObject(hbmp);
 										DeleteDC(hdc);
 										DeleteObject(CropBitmap);
-										ReleaseDC(Window, WindowDC);				
-										Crop.x1 = -1;
+										ReleaseDC(Window, WindowDC);
 										Crop.x2 = 0;
 										Crop.y1 = 0;
 										Crop.y2 = 0;

@@ -1,18 +1,15 @@
 #pragma once
 #include <Windows.h>
-#include <gdiplus.h>
-#pragma comment(lib,"gdiplus.lib")
 
 #include "std.h"
 #include <stdio.h>
 
-using namespace Gdiplus;
 
 typedef uint8_t 	uint8;
 typedef uint16_t 	uint16;
 typedef uint32_t 	uint32;
 typedef uint64_t 	uint64;
-typedef int8_t 	int8;
+typedef int8_t 	    int8;
 typedef int16_t 	int16;
 typedef int32_t 	int32;
 typedef int64_t 	int64;
@@ -47,38 +44,15 @@ void CaptureScreen(HWND Window, void *in_pixels, int ScreenWidth, int ScreenHeig
     GetDIBits(hCaptureDC, hCaptureBitmap, 0, ScreenHeight, pixels, &bmi, DIB_RGB_COLORS);
    
 
-    SetWindowPos(Window, HWND_TOPMOST, 0, 0, ScreenWidth, ScreenHeight, SWP_SHOWWINDOW);
+    SetWindowPos(Window, HWND_TOP, 0, 0, ScreenWidth, ScreenHeight, SWP_SHOWWINDOW);
     ReleaseDC(hDesktopWnd, hDesktopDC);
     DeleteDC(hCaptureDC);
     DeleteObject(hCaptureBitmap);
 
 }
-void CopyFileToClipboard(HWND Window, LPCWSTR path)
-{
-	if(!OpenClipboard(Window)) Error("Failed to access clipboard\n");
-	EmptyClipboard();
-	int size = sizeof(DROPFILES)+((lstrlenW(path)+2)*sizeof(WCHAR));
-	HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, size);
-	DROPFILES *df = (DROPFILES*) GlobalLock(hGlobal);
-	ZeroMemory(df, size);
-	df->pFiles = sizeof(DROPFILES);
-	df->fWide = TRUE;
-	LPWSTR ptr = (LPWSTR) (df + 1);
-	lstrcpyW(ptr, path);
-	GlobalUnlock(hGlobal);
-	SetClipboardData(CF_HDROP, hGlobal);
-	CloseClipboard();
-}
 
-void CopyImageToClipboard(HWND Window, Bitmap *gdibmp) 
+void CopyImageToClipboard(HWND Window, HBITMAP hbitmap) 
 {
-    if (gdibmp->GetLastStatus() != Gdiplus::Ok)
-        return;
-
-    HBITMAP hbitmap;
-    auto status = gdibmp->GetHBITMAP(NULL, &hbitmap);
-    if (status != Gdiplus::Ok)
-        return;
     BITMAP bm;
     GetObject(hbitmap, sizeof bm, &bm);
 
